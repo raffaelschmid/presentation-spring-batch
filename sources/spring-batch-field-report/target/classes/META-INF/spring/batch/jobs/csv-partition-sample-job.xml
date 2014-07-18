@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xsi:schemaLocation="
+	http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-2.1.xsd
+	http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+	<description>Example job partitions</description>
+
+	<import resource="csv-header-context.xml" />
+ 
+	<batch:job id="csv-partition-sample-job" restartable="false">
+		<batch:step id="partitionMaster">
+			<batch:partition step="partitionSlave" partitioner="multiResourcePartitioner">
+				<batch:handler grid-size="2" task-executor="taskExecuter"/>
+			</batch:partition>
+		</batch:step>
+	</batch:job>
+	
+	<batch:step id="partitionSlave">
+		<batch:tasklet>
+			<batch:chunk reader="csvHeaderReaderSlave" writer="writer" commit-interval="2" />
+		<batch:listeners>
+						<batch:listener ref="csvHeaderSkippedLinesCallback" />
+						<batch:listener ref="headerFieldSetMapper" />
+					</batch:listeners>
+		</batch:tasklet>
+	</batch:step>
+
+	<bean id="csvHeaderReaderSlave" class="org.springframework.batch.item.file.FlatFileItemReader" scope="step">
+		<property name="lineMapper" ref="defaultLineMapper"/>
+		<property name="resource" value="#{stepExecutionContext['fileName']}"/>
+		<property name="linesToSkip" value="1"/>
+		<property name="skippedLinesCallback" ref="csvHeaderSkippedLinesCallback"/>
+	</bean>
+	
+	<bean id="multiResourcePartitioner" class="org.springframework.batch.core.partition.support.MultiResourcePartitioner" scope="step">
+		<property name="keyName" value="fileName"/>
+		<property name="resources" value="classpath:upload/input0*.csv"/>
+	</bean>
+	
+	<bean name="writer"	class="com.tvd.tech.spring.batch.job.basic.ExampleItemWriter"/>
+	
+	<bean id="taskExecuter" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+		<property name="corePoolSize" value="5"/>
+		<property name="maxPoolSize" value="5"/>
+	</bean>
+
+
+</beans>

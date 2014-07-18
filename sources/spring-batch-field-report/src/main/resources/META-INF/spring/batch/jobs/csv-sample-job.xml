@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xsi:schemaLocation="
+	http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-2.1.xsd
+	http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+	<description>Example job to process a CSV file with header</description>
+
+	<import resource="csv-header-context.xml" />
+
+	<batch:job id="csv-sample-job" restartable="false">
+		<batch:step id="readProcessWriteCsv">
+			<batch:tasklet transaction-manager="transactionManager">
+				<batch:chunk reader="csvHeaderReader" writer="writer" commit-interval="2" />
+					<batch:listeners>
+						<batch:listener ref="csvHeaderSkippedLinesCallback" />
+						<batch:listener ref="headerFieldSetMapper" />
+					</batch:listeners>
+			</batch:tasklet>
+		</batch:step>
+	</batch:job>
+
+	<!-- writer, example -->
+	<bean name="writer"	class="com.tvd.tech.spring.batch.job.basic.ExampleItemWriter"/>
+
+</beans>
